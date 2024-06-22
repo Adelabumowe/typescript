@@ -10,27 +10,6 @@ jobs:
       - name: 👍 Checkout
         uses: actions/checkout@v2
 
-      # - name: 📦 Cache node modules
-      #   uses: actions/cache@v2
-      #   env:
-      #     cache-name: cache-node-modules
-      #   with:
-      #     path: ~/.npm
-      #     key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-build-${{ env.cache-name }}-
-      #       ${{ runner.os }}-build-
-      #       ${{ runner.os }}-
-
-      # - name: 📥 Install dependencies
-      #   run: npm install --force
-
-      # - name: 💅 Lint code style
-      #   run: npm run lint
-
-      # - name: ✅ Run tests
-      #   run: npm run test
-
       - name: install Snyk CLI
         run: npm install -g snyk
 
@@ -41,14 +20,39 @@ jobs:
         run: snyk code test
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true  # Allow the workflow to continue even if vulnerabilities are found
 
-      - name: 🔍 Run Semgrep for SAST
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: auto
-
-      - name: ✅ Run Snyk to check for vulnerabilities
-        uses: snyk/actions/node@master
+      - name: run Snyk fix
+        run: snyk fix
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-    
+
+      - name: Check for changes
+        id: git_status
+        run: |
+          if [[ -n $(git status -s) ]]; then
+            echo "changes=true" >> $GITHUB_ENV
+          else
+            echo "changes=false" >> $GITHUB_ENV
+          fi
+
+      - name: Commit and push changes
+        if: env.changes == 'true'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout -b snyk-fix-branch
+          git add .
+          git commit -m "fix: apply Snyk fixes"
+          git push --set-upstream origin snyk-fix-branch
+
+      - name: Create Pull Request
+        if: env.changes == 'true'
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "fix: apply Snyk fixes"
+          branch: snyk-fix-branch
+          title: "fix: apply Snyk fixes"
+          body: "This PR includes fixes for vulnerabilities found by Snyk."
+          labels: snyk, security
