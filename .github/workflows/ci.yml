@@ -34,8 +34,13 @@ jobs:
       - name: install Snyk CLI
         run: npm install -g snyk
 
+      - name: Authenticate Snyk
+        run: snyk auth ${{ secrets.SNYK_TOKEN }}
+
       - name: run Snyk Code Test
         run: snyk code test
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       - name: 🔍 Run Semgrep for SAST
         uses: returntocorp/semgrep-action@v1
