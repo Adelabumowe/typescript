@@ -20,7 +20,7 @@ jobs:
         run: snyk code test
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        continue-on-error: true  # Allow the workflow to continue even if vulnerabilities are found
+        continue-on-error: true  # Allow the workflow to continue even if vulnerabilities are found here
 
       - name: run Snyk fix
         run: snyk fix
