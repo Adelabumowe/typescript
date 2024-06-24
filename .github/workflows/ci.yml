@@ -21,7 +21,7 @@ jobs:
           image: horuszup/horusec-cli:latest
           run: |
             echo ${{ env.DIR }}
-            horusec start -p ${{ env.DIR }}
+            horusec start -p $(pwd)
 
       - name: run Snyk Code Test
         run: snyk code test
