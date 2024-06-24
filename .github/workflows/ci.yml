@@ -19,9 +19,8 @@ jobs:
         uses: addnab/docker-run-action@v3
         with: 
           image: horuszup/horusec-cli:latest
-          run: |
-            ls -la
-            horusec start -p .
+          options: -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/src
+          command: horusec start -p /src -P $(pwd)
 
       - name: run Snyk Code Test
         run: snyk code test
