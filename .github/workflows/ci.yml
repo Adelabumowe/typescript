@@ -3,77 +3,50 @@ name: CI
 on: push
 
 jobs:
-  unit:
+  sonarqube:
     runs-on: ubuntu-latest
-    name: 🚀 Lint and test
+
+    services:
+      sonarqube:
+        image: sonarqube:latest
+        options: --health-cmd="curl -f http://localhost:9000/api/system/health || exit 1" --health-interval=10s --health-timeout=5s --health-retries=5
+        ports:
+          - 9000:9000
+        env:
+          SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+
     steps:
-      - name: 👍 Checkout
+      - name: Checkout code
         uses: actions/checkout@v2
 
-      # - name: Update ubuntu
-      #   run: sudo apt update
-
-      # - name: Install dependencies
-      #   run: |
-      #     sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
-      #     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-      #     sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-      #     sudo apt update
-
-      # - name: Install Docker
-      #   run: sudo apt install -y docker-ce
-
-      - name: Start Docker service
-        run: curl -fsSL https://raw.githubusercontent.com/ZupIT/horusec/master/deployments/scripts/install.sh | bash -s latest
-
-      - name: Run Horusec
-        run: horusec start
-
-
-      # - name: Check Docker version
-      #   run: docker --version
-
-      - name: Run Horusec
-        run: docker run -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/src horuszup/horusec-cli:latest horusec start -p /src -P $(pwd)
-
-
-      - name: run Snyk Code Test
-        run: snyk code test
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        continue-on-error: true  # Allow the workflow to continue even if vulnerabilities are found here
-
-      - name: run Snyk fix
-        run: snyk fix
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      - name: Check for changes
-        id: git_status
+      - name: Wait for SonarQube to be ready
         run: |
-          if [[ -n $(git status -s) ]]; then
-            echo "changes=true" >> $GITHUB_ENV
-          else
-            echo "changes=false" >> $GITHUB_ENV
-          fi
+          echo "Waiting for SonarQube to be ready..."
+          while [ "$(curl -s -o /dev/null -w ''%{http_code}'' http://localhost:9000)" != "200" ]; do
+            echo "Waiting..."
+            sleep 10
+          done
 
-      - name: Commit and push changes
-        if: env.changes == 'true'
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git checkout -b snyk-fix-branch
-          git add .
-          git commit -m "fix: apply Snyk fixes"
-          git push --set-upstream origin snyk-fix-branch
-
-      - name: Create Pull Request
-        if: env.changes == 'true'
-        uses: peter-evans/create-pull-request@v4
+      - name: Install Java (required for SonarQube scanner)
+        uses: actions/setup-java@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "fix: apply Snyk fixes"
-          branch: snyk-fix-branch
-          title: "fix: apply Snyk fixes"
-          body: "This PR includes fixes for vulnerabilities found by Snyk."
-          labels: snyk, security
+          distribution: 'adopt'
+          java-version: '11'
+
+      - name: Download SonarQube Scanner
+        run: |
+          curl -sSLo sonar-scanner-cli.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip
+          unzip sonar-scanner-cli.zip
+
+      - name: Run SonarQube Scanner
+        run: |
+          ./sonar-scanner-4.6.2.2472-linux/bin/sonar-scanner \
+            -Dsonar.projectKey=${{ github.repository }} \
+            -Dsonar.sources=. \
+            -Dsonar.host.url=http://localhost:9000 \
+            -Dsonar.login=admin \
+            -Dsonar.password=admin
+
+      - name: SonarQube scan result
+        run: |
+          echo "SonarQube scan completed"
