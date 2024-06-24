@@ -14,7 +14,10 @@ jobs:
         run: pwd
 
       - name: Run Horusec
-        run: docker run -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/src horuszup/horusec-cli:latest horusec start -p /src -P $(pwd)
+        uses: addnab/docker-run-action@v3
+        with: 
+          image: horuszup/horusec-cli:latest
+          run: horusec start
 
       - name: run Snyk Code Test
         run: snyk code test
