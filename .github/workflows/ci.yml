@@ -20,9 +20,8 @@ jobs:
         with: 
           image: horuszup/horusec-cli:latest
           run: |
-            path = ${{ env.DIR }}
-            result = "/".join(path.split("/")[:-1])
-            horusec start -p $(result)
+            ls -la
+            horusec start -p .
 
       - name: run Snyk Code Test
         run: snyk code test
