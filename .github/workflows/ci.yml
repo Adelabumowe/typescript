@@ -10,14 +10,19 @@ jobs:
       - name: 👍 Checkout
         uses: actions/checkout@v2
 
-      - name: Print pwd
-        run: pwd
+      - name: Get current directory
+        id: get-dir
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "::set-output name=dir::$(pwd)"
 
       - name: Run Horusec
         uses: addnab/docker-run-action@v3
         with: 
           image: horuszup/horusec-cli:latest
-          run: horusec start -p /src -P $(pwd)
+          run: |
+            dir=${{ steps.get-dir.outputs.dir }}
+            horusec start -P $(dir)
 
       - name: run Snyk Code Test
         run: snyk code test
