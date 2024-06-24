@@ -19,46 +19,11 @@ jobs:
         uses: addnab/docker-run-action@v3
         with: 
           image: horuszup/horusec-cli:latest
-          options: -v /var/run/docker.sock:/var/run/docker.sock -v ${{ github.workspace }}:/src
-          command: horusec start -p /src -P ${{ github.workspace }}
-
-      - name: run Snyk Code Test
-        run: snyk code test
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        continue-on-error: true  # Allow the workflow to continue even if vulnerabilities are found here
-
-      - name: run Snyk fix
-        run: snyk fix
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      - name: Check for changes
-        id: git_status
-        run: |
-          if [[ -n $(git status -s) ]]; then
-            echo "changes=true" >> $GITHUB_ENV
-          else
-            echo "changes=false" >> $GITHUB_ENV
-          fi
-
-      - name: Commit and push changes
-        if: env.changes == 'true'
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git checkout -b snyk-fix-branch
-          git add .
-          git commit -m "fix: apply Snyk fixes"
-          git push --set-upstream origin snyk-fix-branch
-
-      - name: Create Pull Request
-        if: env.changes == 'true'
-        uses: peter-evans/create-pull-request@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "fix: apply Snyk fixes"
-          branch: snyk-fix-branch
-          title: "fix: apply Snyk fixes"
-          body: "This PR includes fixes for vulnerabilities found by Snyk."
-          labels: snyk, security
+          entrypoint: /bin/sh
+          args: 
+            - -c
+            - |
+              horusec start -p /src -P ${{ github.workspace }}
+          volumes: 
+            - /var/run/docker.sock:/var/run/docker.sock
+            - ${{ github.workspace }}:/src
