@@ -8,7 +8,7 @@ jobs:
     name: 🚀 Lint and test
     steps:
       - name: 👍 Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@master
 
       - name: Get current directory
         run: |
@@ -20,8 +20,9 @@ jobs:
         with: 
           image: horuszup/horusec-cli:latest
           run: |
-            echo ${{ env.DIR }}
-            horusec start -p $(pwd)
+            path = ${{ env.DIR }}
+            result = "/".join(path.split("/")[:-1])
+            horusec start -p $(result)
 
       - name: run Snyk Code Test
         run: snyk code test
