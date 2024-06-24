@@ -10,7 +10,7 @@ jobs:
       - name: 👍 Checkout
         uses: actions/checkout@v2
 
-      - name: Update ubuntu
+      # - name: Update ubuntu
       #   run: sudo apt update
 
       # - name: Install dependencies
