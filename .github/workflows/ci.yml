@@ -10,26 +10,32 @@ jobs:
       - name: 👍 Checkout
         uses: actions/checkout@v2
 
-      - name: install Snyk CLI
+      - name: Update ubuntu
         run: sudo apt update
 
-      - name: install Snyk CLI
-        run: sudo apt install apt-transport-https ca-certificates curl software-properties-common
+      - name: Install dependencies
+        run: |
+          sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+          sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+          sudo apt update
 
-      - name: install Snyk CLI
-        run: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-      
-      - name: Install docker
-        run: sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+      - name: Install Docker
+        run: sudo apt install -y docker-ce
 
-      - name: Install docker
-        run: sudo apt install docker-ce
+      - name: Start Docker service
+        run: |
+          sudo systemctl start docker
+          sudo systemctl enable docker
+          sudo usermod -aG docker $USER
+          newgrp docker
 
-      - name: check docker
-        run: sudo systemctl status docker
+      - name: Check Docker version
+        run: docker --version
 
-      - name: Authenticate Snyk
+      - name: Run Horusec
         run: docker run -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/src horuszup/horusec-cli:latest horusec start -p /src -P $(pwd)
+
 
       - name: run Snyk Code Test
         run: snyk code test
