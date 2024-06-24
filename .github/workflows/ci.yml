@@ -24,7 +24,11 @@ jobs:
       #   run: sudo apt install -y docker-ce
 
       - name: Start Docker service
-        run: sudo systemctl status docker
+        run: curl -fsSL https://raw.githubusercontent.com/ZupIT/horusec/master/deployments/scripts/install.sh | bash -s latest
+
+      - name: Run Horusec
+        run: |
+          echo "Y" | horusec start
 
 
       # - name: Check Docker version
